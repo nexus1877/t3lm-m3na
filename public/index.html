@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>t3lm m3na</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family:'Cairo',system-ui,sans-serif; }
+    body { display:flex; align-items:center; justify-content:center; position:relative; }
+    #bgVideo { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; opacity:0.08; }
+    #particles-canvas { position:fixed; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; opacity:0; transition:opacity 1.2s ease; }
+    #particles-canvas.show { opacity:1; }
+    #pixelCv { position:absolute; top:0; left:0; width:100%; height:100%; z-index:5; pointer-events:none; display:none; border-radius:clamp(16px,3vw,20px); }
+    .page { position:relative; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:clamp(10px,4vw,30px); width:100%; height:100%; opacity:0; }
+    .page.show { animation:fadeUp 1.1s cubic-bezier(0.16,1,0.3,1) forwards; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+    .site-name { font-size:clamp(1.6rem,6vw,3.6rem); font-weight:900; color:#fff; letter-spacing:clamp(4px,1.5vw,10px); text-transform:uppercase; text-align:center; margin-bottom:clamp(8px,2vh,12px); animation:textGlow 3s ease-in-out infinite; font-family:'Cairo',system-ui,sans-serif; }
+    @keyframes textGlow { 0%,100%{text-shadow:0 0 20px rgba(255,255,255,0.1)} 50%{text-shadow:0 0 40px rgba(255,255,255,0.3),0 0 80px rgba(255,255,255,0.05)} }
+    .line-track { width:min(270px,60vw); height:1px; background:rgba(255,255,255,0.1); position:relative; margin-bottom:clamp(20px,5vh,46px); overflow:visible; }
+    .line-dot { position:absolute; width:7px; height:7px; background:#fff; border-radius:50%; top:-3px; box-shadow:0 0 12px #fff,0 0 26px rgba(255,255,255,0.45); animation:dotSlide 2.8s ease-in-out infinite; }
+    @keyframes dotSlide { 0%{left:0;opacity:0} 8%{opacity:1} 92%{opacity:1} 100%{left:calc(100% - 7px);opacity:0} }
+    .card-outer { position:relative; opacity:0; transform:translateY(-240px); width:100%; display:flex; justify-content:center; }
+    .card-outer.drop { animation:dropIn 1.3s cubic-bezier(0.22,1.45,0.36,1) forwards; }
+    .card-outer.drop-out { animation:dropOut 1s cubic-bezier(0.45,0.05,0.55,0.95) forwards; }
+    @keyframes dropIn { 0%{opacity:0;transform:translateY(-240px)} 58%{opacity:1;transform:translateY(14px)} 78%{transform:translateY(-5px)} 100%{opacity:1;transform:translateY(0)} }
+    @keyframes dropOut { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(140px) scale(0.7)} }
+    .card { width:min(400px,92vw); background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:clamp(16px,3vw,20px); padding:clamp(24px,5vw,44px) clamp(16px,4vw,38px); position:relative; backdrop-filter:blur(6px); transition:border-color 0.5s; overflow:hidden; }
+    .card:hover { border-color:rgba(255,255,255,0.15); }
+    .card::before { content:''; position:absolute; inset:-1px; border-radius:clamp(16px,3vw,20px); background:linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 45%,rgba(255,255,255,0.05) 100%); -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; z-index:-1; }
+    .mode-sub { font-size:clamp(0.5rem,1.2vw,0.62rem); letter-spacing:clamp(2px,0.8vw,3px); color:rgba(255,255,255,0.28); text-transform:uppercase; margin-bottom:4px; font-family:'Cairo',system-ui,sans-serif; }
+    .mode-heading { font-size:clamp(1.2rem,3.5vw,1.55rem); font-weight:800; color:#fff; letter-spacing:1px; margin-bottom:clamp(18px,4vh,32px); font-family:'Cairo',system-ui,sans-serif; min-height:clamp(1.8rem,5vw,2.4rem); }
+    .mode-heading .cursor { display:inline-block; width:2px; height:1em; background:#fff; margin-left:2px; vertical-align:text-bottom; animation:blink 0.7s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .field { margin-bottom:clamp(14px,2.5vh,22px); }
+    .field label { display:block; font-size:clamp(0.5rem,1.2vw,0.6rem); font-weight:700; letter-spacing:clamp(1.5px,0.6vw,2.5px); color:rgba(255,255,255,0.28); text-transform:uppercase; margin-bottom:6px; font-family:'Cairo',system-ui,sans-serif; }
+    .input-wrap { position:relative; display:flex; align-items:center; }
+    .input-wrap input { width:100%; min-height:clamp(40px,7vh,48px); padding:clamp(8px,1.5vh,12px) clamp(36px,6vw,46px) clamp(8px,1.5vh,12px) clamp(12px,2vw,16px); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; color:#fff; font-size:clamp(0.75rem,1.8vw,0.9rem); font-family:'Cairo',system-ui,sans-serif; outline:none; transition:border-color 0.3s,background 0.3s,box-shadow 0.3s; background-color:transparent; }
+    .input-wrap input:focus { border-color:rgba(255,255,255,0.35); background:rgba(255,255,255,0.06); }
+    .input-wrap input::placeholder { color:rgba(255,255,255,0.2); font-size:clamp(0.75rem,1.8vw,0.88rem); font-family:'Cairo',system-ui,sans-serif; font-weight:300; }
+    .sweep { position:absolute; bottom:0; left:50%; width:0; height:1px; background:linear-gradient(90deg,transparent,#fff,transparent); border-radius:1px; transition:width 0.3s ease,left 0.3s ease; }
+    .input-wrap input:focus~.sweep { width:100%; left:0; }
+    .eye-btn { position:absolute; right:clamp(6px,1.5vw,12px); background:none; border:none; cursor:pointer; padding:4px; display:flex; align-items:center; justify-content:center; opacity:0.35; transition:opacity 0.2s; z-index:2; }
+    .eye-btn:hover { opacity:0.85; }
+    .eye-btn svg { width:clamp(14px,3vw,18px); height:clamp(14px,3vw,18px); fill:none; stroke:#fff; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .btn-primary { width:100%; padding:clamp(12px,2.5vh,15px); margin-top:4px; background:linear-gradient(135deg,#fff,#e8e8e8); color:#000; border:none; border-radius:10px; font-size:clamp(0.65rem,1.5vw,0.78rem); font-weight:800; letter-spacing:clamp(1.5px,0.6vw,2.5px); text-transform:uppercase; cursor:pointer; transition:transform 0.25s,box-shadow 0.25s,background 0.3s; position:relative; overflow:hidden; font-family:'Cairo',system-ui,sans-serif; }
+    .btn-primary::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.3) 50%,transparent 60%); transform:translateX(-100%); transition:transform 0.6s; }
+    .btn-primary:hover::after { transform:translateX(100%); }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(255,255,255,0.18); }
+    .btn-primary:active { transform:translateY(0); }
+    .divider { display:flex; align-items:center; gap:14px; margin:clamp(12px,2vh,20px) 0; }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.07); }
+    .divider span { font-size:clamp(0.5rem,1.2vw,0.6rem); letter-spacing:2px; color:rgba(255,255,255,0.2); font-family:'Cairo',system-ui,sans-serif; }
+    .btn-secondary { width:100%; padding:clamp(11px,2vh,14px); background:transparent; color:rgba(255,255,255,0.5); border:1px solid rgba(255,255,255,0.11); border-radius:10px; font-size:clamp(0.65rem,1.5vw,0.78rem); font-weight:700; letter-spacing:clamp(1.5px,0.6vw,2.5px); text-transform:uppercase; cursor:pointer; transition:all 0.25s; font-family:'Cairo',system-ui,sans-serif; }
+    .btn-secondary:hover { border-color:rgba(255,255,255,0.35); color:#fff; background:rgba(255,255,255,0.04); }
+    .hidden-field { display:none; }
+    .forgot-link { display:block; text-align:right; font-size:clamp(0.55rem,1.2vw,0.65rem); color:rgba(255,255,255,0.2); text-decoration:none; margin-top:-6px; margin-bottom:clamp(4px,1vh,8px); transition:color 0.3s; letter-spacing:1px; font-family:'Cairo',system-ui,sans-serif; }
+    .forgot-link:hover { color:rgba(255,255,255,0.5); }
+    .toast-msg { position:fixed; bottom:clamp(20px,4vh,30px); left:50%; transform:translateX(-50%) scale(0.95); padding:clamp(12px,2vh,18px) clamp(20px,4vw,32px); border-radius:16px; background:rgba(10,10,20,0.92); backdrop-filter:blur(20px); color:#fff; font-size:clamp(0.85rem,1.8vw,1rem); z-index:9999; box-shadow:0 20px 60px rgba(0,0,0,0.6); animation:toastPop 0.5s cubic-bezier(0.34,1.56,0.64,1); text-align:center; max-width:90vw; border-left:4px solid #f87171; opacity:0; transition:opacity 0.3s ease,transform 0.3s ease; pointer-events:none; font-weight:500; font-family:'Cairo',system-ui,sans-serif; }
+    .toast-msg.show { opacity:1; transform:translateX(-50%) scale(1); }
+    .toast-msg.success { border-left-color:#34d399; }
+    .toast-msg.error { border-left-color:#f87171; }
+    .toast-msg.info { border-left-color:#60a5fa; }
+    .toast-msg.warning { border-left-color:#fbbf24; }
+    @keyframes toastPop { 0%{opacity:0;transform:translateX(-50%) scale(0.8) translateY(20px)} 100%{opacity:1;transform:translateX(-50%) scale(1) translateY(0)} }
+    .hidden { display:none !important; }
+    #welcomeBox { text-align:center; color:#fff; }
+    #welcomeBox h2 { font-size:clamp(1.4rem,4vw,2.2rem); font-weight:700; margin-bottom:10px; }
+    #welcomeBox p { font-size:clamp(0.9rem,2vw,1.1rem); opacity:0.7; }
+    #logoutBtn { margin-top:20px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:10px 20px; border-radius:30px; cursor:pointer; font-family:'Cairo',system-ui,sans-serif; transition:0.3s; }
+    #logoutBtn:hover { background:rgba(255,255,255,0.2); }
+  </style>
+</head>
+<body>
+  <video id="bgVideo" autoplay muted loop playsinline preload="auto">
+    <source src="https://github.com/YASSIN810303/Yassott/raw/refs/heads/main/1.mp4" type="video/mp4">
+  </video>
+  <canvas id="particles-canvas"></canvas>
+  <div class="page" id="page">
+    <div class="site-name">t3lm m3na</div>
+    <div class="line-track"><div class="line-dot"></div></div>
+    <div class="card-outer" id="cardOuter">
+      <div class="card" id="card">
+        <canvas id="pixelCv"></canvas>
+        <div id="authForms">
+          <div class="mode-sub" id="modeSub">Welcome back</div>
+          <div class="mode-heading" id="modeHeading"><span id="headingText"></span><span class="cursor"></span></div>
+          <div class="field hidden-field" id="uField">
+            <label>Username</label>
+            <div class="input-wrap">
+              <input type="text" id="uInput" placeholder="your username" autocomplete="off">
+              <div class="sweep"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <div class="input-wrap">
+              <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="off">
+              <div class="sweep"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <div class="input-wrap">
+              <input type="password" id="passInput" placeholder="••••••••" autocomplete="off">
+              <div class="sweep"></div>
+              <button class="eye-btn" id="eyeBtn" type="button">
+                <svg id="iShow" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg id="iHide" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="field hidden-field" id="cField">
+            <label>Confirm Password</label>
+            <div class="input-wrap">
+              <input type="password" id="cInput" placeholder="••••••••" autocomplete="off">
+              <div class="sweep"></div>
+              <button class="eye-btn" type="button" id="eyeBtn2">
+                <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
+          <button class="btn-primary" id="btnP">SIGN IN</button>
+          <div class="divider"><span>OR</span></div>
+          <button class="btn-secondary" id="btnS">CREATE ACCOUNT</button>
+        </div>
+        <div id="welcomeBox" class="hidden">
+          <h2>Welcome, <span id="welcomeUser"></span></h2>
+          <p>You are automatically signed in.</p>
+          <button id="logoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="toast-msg" id="toastMsg"></div>
+  <script>
+    (function() {
+      const API_URL = window.location.origin;
+
+      var bgVideo = document.getElementById('bgVideo');
+      document.addEventListener('click', function() {
+        if (bgVideo.muted) {
+          bgVideo.muted = false;
+          bgVideo.play();
+        }
+      });
+
+      let particlesStarted = false;
+      function startParticles() {
+        if (particlesStarted) return;
+        particlesStarted = true;
+        const canvas = document.getElementById('particles-canvas');
+        const ctx = canvas.getContext('2d');
+        let w, h;
+        const particles = [];
+        const COUNT = 50;
+        const DIST = 120;
+        function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+        class Particle { constructor() { this.reset(); } reset() { this.x = Math.random() * w; this.y = Math.random() * h; this.vx = (Math.random() - 0.5) * 0.6; this.vy = (Math.random() - 0.5) * 0.6; this.r = Math.random() * 1.6 + 0.5; } update() { this.x += this.vx; this.y += this.vy; if (this.x < 0 || this.x > w) this.vx *= -1; if (this.y < 0 || this.y > h) this.vy *= -1; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill(); } }
+        for (let i = 0; i < COUNT; i++) particles.push(new Particle());
+        function animate() {
+          ctx.clearRect(0, 0, w, h);
+          for (let p of particles) { p.update(); p.draw(); }
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              const dx = particles[i].x - particles[j].x;
+              const dy = particles[i].y - particles[j].y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < DIST) {
+                const opacity = 0.3 * (1 - dist / DIST);
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.strokeStyle = `rgba(255,255,255,${opacity})`;
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+              }
+            }
+          }
+          requestAnimationFrame(animate);
+        }
+        canvas.classList.add('show');
+        animate();
+      }
+
+      let audioCtx = null;
+      function getAudioCtx() {
+        if (!audioCtx) { try { audioCtx = new(window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+        if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+        return audioCtx;
+      }
+      function playBeep(freq = 800, duration = 150, type = 'sine', vol = 0.25) {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        try { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = type; osc.frequency.value = freq; gain.gain.value = vol; gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000); osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + duration / 1000); } catch (e) {}
+      }
+      function playClick() { playBeep(1200, 80, 'square', 0.15); }
+      function playSuccess() { playBeep(880, 120, 'sine', 0.25); setTimeout(() => playBeep(1100, 120, 'sine', 0.2), 150); }
+      function playWelcome() { playBeep(600, 200, 'sine', 0.2); setTimeout(() => playBeep(800, 200, 'sine', 0.2), 220); setTimeout(() => playBeep(1000, 250, 'sine', 0.25), 440); }
+      function playSwitch() { playBeep(500, 100, 'triangle', 0.2); setTimeout(() => playBeep(700, 100, 'triangle', 0.2), 120); }
+      document.addEventListener('click', function firstClick() { getAudioCtx(); document.removeEventListener('click', firstClick); }, { once: true });
+
+      let typingInterval = null;
+      function typeText(element, text, speed = 55) {
+        const headingText = document.getElementById('headingText');
+        if (typingInterval) { clearInterval(typingInterval); typingInterval = null; }
+        headingText.textContent = '';
+        let index = 0;
+        typingInterval = setInterval(() => {
+          if (index < text.length) { headingText.textContent += text.charAt(index); index++; }
+          else { clearInterval(typingInterval); typingInterval = null; }
+        }, speed);
+      }
+
+      function pixelReassemble(cardEl) {
+        const cv = document.getElementById('pixelCv');
+        const card = document.getElementById('card');
+        const rect = card.getBoundingClientRect();
+        cv.style.display = 'block';
+        cv.width = rect.width;
+        cv.height = rect.height;
+        const ctx = cv.getContext('2d');
+        const COLS = 20, ROWS = 14;
+        const pw = cv.width / COLS, ph = cv.height / ROWS;
+        const grid = [];
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const side = Math.floor(Math.random() * 4);
+            let sx, sy;
+            if (side === 0) { sx = Math.random() * cv.width; sy = -80; } else if (side === 1) { sx = cv.width + 80; sy = Math.random() * cv.height; } else if (side === 2) { sx = Math.random() * cv.width; sy = cv.height + 80; } else { sx = -80; sy = Math.random() * cv.height; }
+            const b = 0.04 + Math.random() * 0.12;
+            grid.push({ tx: c * pw, ty: r * ph, x: sx, y: sy, delay: Math.random() * 400, spd: 0.06 + Math.random() * 0.08, alpha: 0, b: b });
+          }
+        }
+        cardEl.style.opacity = '0';
+        let startTime = null;
+        const DURATION = 1200;
+        function frame(time) {
+          if (!startTime) startTime = time;
+          const elapsed = time - startTime;
+          ctx.clearRect(0, 0, cv.width, cv.height);
+          let done = true;
+          grid.forEach(p => {
+            const t = Math.max(0, elapsed - p.delay);
+            const prog = Math.min(t / (DURATION * 0.7), 1);
+            if (prog < 1) done = false;
+            p.x += (p.tx - p.x) * p.spd;
+            p.y += (p.ty - p.y) * p.spd;
+            p.alpha = Math.min(1, prog * 2);
+            const c = Math.floor(p.b * 255);
+            ctx.fillStyle = `rgba(${c},${c},${c},${p.alpha})`;
+            ctx.fillRect(p.x, p.y, pw + 0.5, ph + 0.5);
+          });
+          if (!done) { requestAnimationFrame(frame); }
+          else {
+            cardEl.style.transition = 'opacity 0.4s';
+            cardEl.style.opacity = '1';
+            let fade = 1;
+            function fadeOut() {
+              fade -= 0.04;
+              if (fade > 0) {
+                ctx.clearRect(0, 0, cv.width, cv.height);
+                grid.forEach(p => {
+                  const c = Math.floor(p.b * 255);
+                  ctx.fillStyle = `rgba(${c},${c},${c},${fade})`;
+                  ctx.fillRect(p.tx, p.ty, pw + 0.5, ph + 0.5);
+                });
+                requestAnimationFrame(fadeOut);
+              } else { cv.style.display = 'none'; }
+            }
+            fadeOut();
+          }
+        }
+        requestAnimationFrame(frame);
+      }
+
+      function pixelScatter(callback) {
+        const cv = document.getElementById('pixelCv');
+        const card = document.getElementById('card');
+        const rect = card.getBoundingClientRect();
+        cv.style.display = 'block';
+        cv.width = rect.width;
+        cv.height = rect.height;
+        const ctx = cv.getContext('2d');
+        const COLS = 16, ROWS = 12;
+        const pw = cv.width / COLS, ph = cv.height / ROWS;
+        const pixels = [];
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 4;
+            pixels.push({ x: c * pw, y: r * ph, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 1, life: 1, decay: 0.01 + Math.random() * 0.015, size: pw * 0.7 });
+          }
+        }
+        function scatterLoop() {
+          ctx.clearRect(0, 0, cv.width, cv.height);
+          let alive = false;
+          pixels.forEach(p => {
+            p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life -= p.decay;
+            if (p.life > 0) { alive = true; ctx.globalAlpha = p.life; ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(p.x, p.y, p.size, p.size); ctx.globalAlpha = 1; }
+          });
+          if (alive) { requestAnimationFrame(scatterLoop); }
+          else { cv.style.display = 'none'; if (callback) callback(); }
+        }
+        scatterLoop();
+      }
+
+      let isSignup = false;
+      let isAnimating = false;
+
+      function toggleMode() {
+        if (isAnimating) return;
+        isAnimating = true;
+        const outer = document.getElementById('cardOuter');
+        const card = document.getElementById('card');
+        playSwitch();
+        pixelScatter(function() {
+          isSignup = !isSignup;
+          const sub = document.getElementById('modeSub');
+          const heading = document.getElementById('modeHeading');
+          const btnP = document.getElementById('btnP');
+          const btnS = document.getElementById('btnS');
+          const uField = document.getElementById('uField');
+          const cField = document.getElementById('cField');
+          if (isSignup) {
+            sub.textContent = 'Join us';
+            btnP.textContent = 'CREATE ACCOUNT';
+            btnS.textContent = 'SIGN IN INSTEAD';
+            uField.classList.remove('hidden-field');
+            cField.classList.remove('hidden-field');
+            heading.textContent = 'Create Account';
+          } else {
+            sub.textContent = 'Welcome back';
+            btnP.textContent = 'SIGN IN';
+            btnS.textContent = 'CREATE ACCOUNT';
+            uField.classList.add('hidden-field');
+            cField.classList.add('hidden-field');
+            heading.textContent = 'Sign In';
+          }
+          document.getElementById('uInput').value = '';
+          document.getElementById('emailInput').value = '';
+          document.getElementById('passInput').value = '';
+          document.getElementById('cInput').value = '';
+          outer.classList.remove('drop');
+          outer.style.opacity = '0';
+          outer.style.transform = 'translateY(-40px)';
+          setTimeout(function() {
+            outer.style.opacity = '1';
+            outer.style.transform = 'translateY(0)';
+            pixelReassemble(card);
+            setTimeout(() => {
+              const fullText = heading.textContent.replace(/[^a-zA-Z ]/g, '').trim();
+              if (fullText) { document.getElementById('headingText').textContent = ''; typeText(heading, fullText, 50); }
+              isAnimating = false;
+              playSuccess();
+            }, 200);
+          }, 100);
+        });
+      }
+
+      function showToast(message, type = 'error') {
+        const toast = document.getElementById('toastMsg');
+        toast.textContent = message;
+        toast.className = 'toast-msg ' + type;
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(window.toastTimeout);
+        window.toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
+      }
+
+      function isArabicChar(ch) { return /[\u0600-\u06FF]/.test(ch); }
+      function blockArabic(input) {
+        input.addEventListener('input', function() {
+          let val = this.value, filtered = '', hasArabic = false;
+          for (let ch of val) { if (isArabicChar(ch)) hasArabic = true; else filtered += ch; }
+          if (hasArabic) { this.value = filtered; showToast('Sorry, Arabic username is not supported yet', 'error'); }
+        });
+        input.addEventListener('keydown', function(e) {
+          if (e.key.length === 1 && isArabicChar(e.key)) { e.preventDefault(); showToast('Sorry, Arabic username is not supported yet', 'error'); }
+        });
+        input.addEventListener('paste', function(e) {
+          e.preventDefault();
+          const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+          let filtered = '', hasArabic = false;
+          for (let ch of text) { if (isArabicChar(ch)) hasArabic = true; else filtered += ch; }
+          if (hasArabic) showToast('Sorry, Arabic username is not supported yet', 'error');
+          if (filtered.length > 0) { this.value += filtered; this.dispatchEvent(new Event('input', { bubbles: true })); }
+        });
+      }
+
+      const emailInput = document.getElementById('emailInput');
+      const passInput = document.getElementById('passInput');
+      const uInput = document.getElementById('uInput');
+      const cInput = document.getElementById('cInput');
+      blockArabic(emailInput); blockArabic(passInput); blockArabic(uInput); blockArabic(cInput);
+
+      let showPass = false;
+      function togglePass() {
+        showPass = !showPass;
+        passInput.type = showPass ? 'text' : 'password';
+        cInput.type = showPass ? 'text' : 'password';
+        document.getElementById('iShow').style.display = showPass ? 'none' : 'block';
+        document.getElementById('iHide').style.display = showPass ? 'block' : 'none';
+      }
+      document.getElementById('eyeBtn').addEventListener('click', togglePass);
+      document.getElementById('eyeBtn2').addEventListener('click', togglePass);
+
+      function getVal(input) { return input.value; }
+
+      async function apiCall(endpoint, data) {
+        const res = await fetch(API_URL + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      }
+
+      function showAuthForms() {
+        document.getElementById('authForms').classList.remove('hidden');
+        document.getElementById('welcomeBox').classList.add('hidden');
+        document.getElementById('modeSub').textContent = isSignup ? 'Join us' : 'Welcome back';
+        document.getElementById('modeHeading').textContent = isSignup ? 'Create Account' : 'Sign In';
+        document.getElementById('btnP').textContent = isSignup ? 'CREATE ACCOUNT' : 'SIGN IN';
+        document.getElementById('btnS').textContent = isSignup ? 'SIGN IN INSTEAD' : 'CREATE ACCOUNT';
+        document.getElementById('uField').classList.toggle('hidden-field', !isSignup);
+        document.getElementById('cField').classList.toggle('hidden-field', !isSignup);
+        const heading = document.getElementById('modeHeading');
+        const fullText = heading.textContent.replace(/[^a-zA-Z ]/g, '').trim();
+        if (fullText) { document.getElementById('headingText').textContent = ''; typeText(heading, fullText, 50); }
+      }
+
+      function showWelcome(user) {
+        document.getElementById('authForms').classList.add('hidden');
+        document.getElementById('welcomeBox').classList.remove('hidden');
+        document.getElementById('welcomeUser').textContent = user.username || user.email;
+      }
+
+      async function handleLoginOrSignup() {
+        playClick();
+        const email = getVal(emailInput);
+        const pass = getVal(passInput);
+        if (!email || !pass) { showToast('Please fill in all fields', 'error'); return; }
+        if (isSignup) {
+          const user = getVal(uInput);
+          const confirm = getVal(cInput);
+          if (!user || user.length < 3) { showToast('Username must be at least 3 characters', 'error'); return; }
+          if (pass !== confirm) { showToast('Passwords do not match', 'error'); return; }
+          const data = await apiCall('/api/signup', { username: user, email, password: pass });
+          if (data.error) { showToast(data.error, 'error'); return; }
+          localStorage.setItem('token', data.token);
+          showWelcome(data.user);
+          playSuccess();
+          showToast('Account created successfully', 'success');
+        } else {
+          const data = await apiCall('/api/login', { email, password: pass });
+          if (data.error) { showToast(data.error, 'error'); return; }
+          localStorage.setItem('token', data.token);
+          showWelcome(data.user);
+          playSuccess();
+          showToast('Welcome back', 'success');
+        }
+      }
+
+      document.getElementById('btnP').addEventListener('click', handleLoginOrSignup);
+      document.getElementById('btnS').addEventListener('click', toggleMode);
+
+      document.getElementById('forgotLink').addEventListener('click', function(e) {
+        e.preventDefault(); playClick(); showToast('Password reset link sent to your email', 'info');
+      });
+
+      document.getElementById('logoutBtn').addEventListener('click', function() {
+        localStorage.removeItem('token');
+        showAuthForms();
+        playClick();
+        showToast('Logged out', 'info');
+      });
+
+      async function autoLogin() {
+        const token = localStorage.getItem('token');
+        if (!token) return false;
+        const data = await apiCall('/api/verify', { token });
+        if (data.error) { localStorage.removeItem('token'); return false; }
+        showWelcome(data.user);
+        return true;
+      }
+
+      window.addEventListener('load', function() {
+        setTimeout(() => {
+          document.getElementById('page').classList.add('show');
+          setTimeout(() => {
+            const outer = document.getElementById('cardOuter');
+            outer.classList.add('drop');
+            outer.addEventListener('animationend', function() {
+              pixelReassemble(document.getElementById('card'));
+              startParticles();
+              setTimeout(async () => {
+                playWelcome();
+                const logged = await autoLogin();
+                if (!logged) {
+                  showAuthForms();
+                }
+              }, 150);
+            }, { once: true });
+          }, 600);
+        }, 1200);
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') document.activeElement?.blur();
+        if (e.key === 'Enter') {
+          const active = document.activeElement;
+          if (active && (active.id === 'emailInput' || active.id === 'passInput' || active.id === 'uInput' || active.id === 'cInput')) {
+            handleLoginOrSignup();
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+            </html>
